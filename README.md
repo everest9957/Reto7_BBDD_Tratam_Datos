@@ -294,3 +294,212 @@ completo de los casos de prueba, resultados y conclusiones.
 - [Hibernate 6.4 User Guide](https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html)
 - [JSR 338 - JPA 2.2](https://jcp.org/en/jsr/detail?id=338)
 - [H2 Database](https://www.h2database.com/)
+
+---
+
+## ✅ Cumplimiento de los requisitos del reto
+
+Esta sección mapea **cada requisito del enunciado** del Reto 7 con la
+solución implementada y su evidencia correspondiente.
+
+### 1. Configuración general (JDK + IDE)
+
+> *"Asegúrate de tener instalado el JDK y un IDE adecuado... Crea un nuevo
+> proyecto Java y configura Hibernate. Puedes hacer esto manualmente o
+> utilizando herramientas como Maven o Gradle."*
+
+**Gestión**:
+
+- **JDK**: instalado **Oracle JDK 21.0.8 LTS** en
+  `C:\Program Files\Java\jdk-21`.
+- **IDE**: **Visual Studio Code** para edición de código y **PowerShell**
+  para la ejecución de Maven y Git.
+- **Proyecto**: creado desde cero con estructura Maven estándar.
+- **Gestor de dependencias**: **Maven 3.9.11** (se eligió Maven frente a
+  Gradle por su integración natural con el IDE y su amplia documentación).
+
+**Evidencia**: Figura 1 (estructura del proyecto).
+
+### 2. Configuración de Hibernate (dependencias)
+
+> *"Añade las dependencias necesarias de Hibernate en tu archivo de
+> configuración de Maven o Gradle."*
+
+**Gestión**: en `pom.xml` se declaran las dependencias:
+
+- `org.hibernate.orm:hibernate-core:6.4.4.Final` — núcleo del ORM.
+- `com.h2database:h2:2.2.224` — motor de base de datos embebido.
+- `org.junit.jupiter:junit-jupiter:5.10.2` (scope `test`) — pruebas.
+
+**Evidencia**: Figura 2 (`pom.xml`).
+
+### 3. Archivo `hibernate.cfg.xml` en `src/main/resources`
+
+> *"Crea un archivo de configuración de Hibernate, que se llamará
+> `hibernate.cfg.xml`. Lo debes poner en el directorio
+> `src/main/resources`."*
+
+**Gestión**: el archivo se ubica en
+`src/main/resources/hibernate.cfg.xml`, tal como especifica el reto.
+
+**Evidencia**: Figura 3.
+
+### 4. Propiedades de conexión, dialecto, autocommit y cache
+
+> *"Define las propiedades de conexión a la base de datos, el dialecto
+> SQL que se utilizará y otras configuraciones. ¿Cómo cuáles? Pues, por
+> ejemplo, el modo de autocommit y el uso de second-level cache, si es
+> necesario."*
+
+**Gestión** en `hibernate.cfg.xml`:
+
+| Propiedad | Valor | Justificación |
+|-----------|-------|---------------|
+| `hibernate.connection.driver_class` | `org.h2.Driver` | Driver JDBC de H2 |
+| `hibernate.connection.url` | `jdbc:h2:mem:reto7db;DB_CLOSE_DELAY=-1` | BD en memoria persistente entre conexiones |
+| `hibernate.connection.username` | `sa` | Usuario por defecto de H2 |
+| `hibernate.connection.password` | *(vacío)* | H2 en memoria no requiere password |
+| `hibernate.dialect` | `org.hibernate.dialect.H2Dialect` | Genera SQL específico para H2 |
+| `hibernate.connection.autocommit` | `false` | Transacciones explícitas controladas por el código |
+| `hibernate.cache.use_second_level_cache` | `false` | No se necesita para este proyecto |
+| `hibernate.show_sql` | `true` | Visibilidad del SQL generado |
+| `hibernate.format_sql` | `true` | SQL legible en consola |
+| `hibernate.hbm2ddl.auto` | `update` | Crear/actualizar tablas según entidades |
+
+**Evidencia**: Figura 3.
+
+### 5. Entidad `Usuario` con anotaciones JPA
+
+> *"Elige una entidad simple para mapear, como Usuario. Este podría tener
+> atributos como id, nombre e email. Crea una clase Java para esta entidad
+> y utiliza anotaciones de Hibernate como @Entity, @Table y @Column."*
+
+**Gestión**: clase `com.codigosamurai.entity.Usuario` con los tres
+atributos solicitados y las anotaciones requeridas:
+
+- `@Entity` → marca la clase como entidad gestionada.
+- `@Table(name = "usuarios")` → nombre de la tabla destino.
+- `@Id` + `@GeneratedValue(strategy = IDENTITY)` → clave primaria autoincremental.
+- `@Column` en cada atributo → mapeo y restricciones (`NOT NULL`, `UNIQUE`,
+  `length`).
+
+**Evidencia**: Figura 4 (código) y Figura 5 (diagrama del mapeo).
+
+### 6. Operaciones CRUD con `SessionFactory`, `Session` y transacciones
+
+> *"Implementa las operaciones CRUD utilizando la sesión de Hibernate.
+> Puedes usar SessionFactory para crear sesiones y transacciones."*
+
+**Gestión**:
+
+- `HibernateUtil`: clase utilitaria que expone una `SessionFactory`
+  singleton construida a partir de `hibernate.cfg.xml`.
+- `UsuarioDAO`: implementa las cuatro operaciones:
+  - `guardar(Usuario)` → `session.persist()` dentro de `beginTransaction()/commit()`.
+  - `obtenerPorId(Long)` → `session.get()`.
+  - `obtenerTodos()` → `session.createQuery("FROM Usuario", Usuario.class).list()`.
+  - `actualizar(Usuario)` → `session.merge()`.
+  - `eliminar(Long)` → `session.remove()`.
+- Cada operación usa **try-with-resources** para cerrar la `Session`
+  automáticamente y **rollback** en caso de excepción.
+
+**Evidencia**: código fuente en `src/main/java/com/codigosamurai/`.
+
+### 7. Testing con base de datos en memoria (H2)
+
+> *"Escribe pruebas unitarias para verificar que el mapeo y las
+> operaciones CRUD funcionan como se espera. Utiliza una base de datos en
+> memoria, como H2 para las pruebas."*
+
+**Gestión**:
+
+- Clase `UsuarioCRUDTest` con **4 tests JUnit 5**, ordenados con
+  `@TestMethodOrder(OrderAnnotation.class)` y `@Order(1..4)`.
+- Se ejecutan contra **H2 en memoria** (`jdbc:h2:mem:reto7db`), sin
+  necesidad de instalar un SGBD externo.
+- Resultado: **4 tests pasados, 0 fallos, BUILD SUCCESS**.
+
+**Evidencia**: Figura 6 (resultado) y Figura 7 (SQL generado).
+
+### 8. Documentación de la entidad y la configuración
+
+> *"Documenta tu clase de entidad y la configuración de Hibernate. Debes
+> explicar cómo cada configuración y anotación contribuye al mapeo y a la
+> gestión de la base de datos."*
+
+**Gestión**:
+
+- **Javadoc** en `Usuario.java` que explica:
+  - La función de la clase y su tabla destino.
+  - El efecto de cada anotación (`@Entity`, `@Table`, `@Id`,
+    `@GeneratedValue`, `@Column`).
+  - Las restricciones aplicadas y su traducción a SQL
+    (`NOT NULL`, `UNIQUE`, `VARCHAR(n)`, `AUTO_INCREMENT`).
+- **Secciones 3, 4 y 5 del README** documentan cada propiedad del
+  `hibernate.cfg.xml` y cada anotación de la entidad.
+- **Sección "Cumplimiento de los requisitos del reto"** (esta misma)
+  documenta la relación requisito → solución.
+
+**Evidencia**: Javadoc + secciones 3, 4 y 5 del README + Figura 5.
+
+### 9. Aportación al portfolio
+
+> *"Sube el código fuente completo del proyecto a un repositorio en
+> GitHub, incluyendo archivos de configuración, clases de entidad y test.
+> Además, incluye capturas de pantalla o diagramas que ilustren la
+> estructura de la entidad y cómo se mapea a la tabla de la base de datos.
+> Y también sube un informe de pruebas."*
+
+**Gestión**:
+
+| Elemento del portfolio | Ubicación |
+|------------------------|-----------|
+| Código fuente | `src/` subido a GitHub |
+| Configuración Maven | `pom.xml` |
+| Configuración Hibernate | `src/main/resources/hibernate.cfg.xml` |
+| Entidad | `src/main/java/com/codigosamurai/entity/Usuario.java` |
+| DAO | `src/main/java/com/codigosamurai/dao/UsuarioDAO.java` |
+| Utilidad | `src/main/java/com/codigosamurai/util/HibernateUtil.java` |
+| Tests | `src/test/java/com/codigosamurai/UsuarioCRUDTest.java` |
+| Capturas | `docs/capturas/01..07.png` |
+| Diagrama | `docs/capturas/05-diagrama-entidad-tabla.png` + `.drawio` editable |
+| Informe de pruebas | `docs/INFORME_PRUEBAS.md` |
+| README | `README.md` (este archivo) |
+
+**Repositorio**: [https://github.com/everest9957/Reto7_BBDD_Tratam_Datos](https://github.com/everest9957/Reto7_BBDD_Tratam_Datos)
+
+### 10. Apoyo de la IA (documentado)
+
+> *"Este reto es muy ambicioso y es posible que la inteligencia artificial
+> te pueda ser de utilidad. Úsala si lo consideras, pero ten en cuenta que
+> el prompt que le des es clave para el logro del resultado que buscas."*
+
+**Gestión**: se empleó asistencia de IA (Claude) para:
+
+- Diseñar la estructura Maven del proyecto.
+- Guiar la instalación de Maven y configuración de `JAVA_HOME`.
+- Redactar los Javadoc y las explicaciones del README.
+- Documentar el diagrama ORM y el informe de pruebas.
+
+Todo el código ha sido **revisado, comprendido y ejecutado** localmente,
+y cada configuración ha sido validada con los tests en verde. El uso de
+la IA se documenta aquí en aras de la transparencia.
+
+---
+
+## 📋 Resumen del cumplimiento
+
+| # | Requisito del reto | Estado |
+|---|--------------------|--------|
+| 1 | JDK + IDE + proyecto Java con Maven | ✅ |
+| 2 | Dependencias Hibernate en `pom.xml` | ✅ |
+| 3 | `hibernate.cfg.xml` en `src/main/resources` | ✅ |
+| 4 | Propiedades: conexión, dialecto, autocommit, cache | ✅ |
+| 5 | Entidad `Usuario` con `@Entity`, `@Table`, `@Column` | ✅ |
+| 6 | CRUD con `SessionFactory`, `Session`, transacciones | ✅ |
+| 7 | Tests JUnit 5 con H2 en memoria | ✅ |
+| 8 | Documentación de entidad y configuración | ✅ |
+| 9 | Portfolio: código + capturas + diagramas + informe | ✅ |
+| 10 | Uso de IA documentado | ✅ |
+
+**Todos los requisitos del Reto 7 han sido cumplidos.**
